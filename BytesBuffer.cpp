@@ -12,7 +12,7 @@
 #include <HexDump.h>
 using namespace IceUtil;
 
-
+#define WAITINGBUGTIME 1000
 class BytesBuffer_context
 {
 public:
@@ -70,8 +70,10 @@ void BytesBuffer_context::feed(size_t size, BufferChunkRef cbChunk)
         
         while( size > _feedCapacity && !_eatTerminated) {
             _currentFeedRequestSize = size;
-            //SP::printf("\nwait feeding %d, eatting %s\n", _currentFeedRequestSize, _eatTerminated ? "terminated" : "not terminated");
-            _monitor.wait();
+            
+            if ( !_monitor.timedWait(IceUtil::Time::milliSeconds(WAITINGBUGTIME)) ) {
+                SP::printf("\nwait feeding %d \n", _currentFeedRequestSize);
+            }
         }
         _currentFeedRequestSize = 0;
     }
@@ -142,8 +144,9 @@ void BytesBuffer_context::eat(size_t size, BufferChunkRef cbChunk)
         if (_eatTerminated)  return;
         while(size > _eatCapacity && !_feedTerminated) {
             _currentEatRequestSize = size;
-            //SP::printf("\nwait eating %d, feeding %s\n", _currentEatRequestSize, _feedTerminated ? "terminated" : "not terminated");
-            _monitor.wait();
+            if ( ! _monitor.timedWait(IceUtil::Time::milliSeconds(WAITINGBUGTIME)) ) {
+                SP::printf("\nwait eating %d \n", _currentFeedRequestSize);
+            }
         }
         _currentEatRequestSize = 0;
     }

@@ -17,6 +17,7 @@ enum EEStat
     ePlayErr,
     ePlayWaitting,
     ePlayStarted,
+    ePlayAborted,
     ePlayFinished
 };
 

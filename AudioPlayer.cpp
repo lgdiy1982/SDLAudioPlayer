@@ -118,10 +118,11 @@ void PlayerImpl::sdlDataDrain()
 void PlayerImpl::stop()
 {
     _decoder->closeFile();
+    _buffer->terminatedEat();
     _decoder->getThreadControl().join();
     _player->close();
     _buffer->terminatedFeed();
-    _buffer->terminatedEat();
+    
 }
 
 
@@ -129,6 +130,8 @@ void PlayerImpl::stop()
 
 Player::Player()
 {
+    
+    
     _priv = new PlayerImpl();
 }
 
