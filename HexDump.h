@@ -3,8 +3,6 @@
 //  AmrRecoderAndPlayer
 //
 //  Created by lu gang on 8/27/13.
-//  Copyright (c) 2013 topcmm. All rights reserved.
-//
 
 #ifndef AmrRecoderAndPlayer_HexDump_h
 #define AmrRecoderAndPlayer_HexDump_h

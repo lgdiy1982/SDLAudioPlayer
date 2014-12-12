@@ -158,6 +158,7 @@ WINAPI startHook(void* arg)
         // See the comment in IceUtil::Thread::start() for details.
         //
         rawThread->__decRef();
+        pthread_setname_np(thread->name().c_str());
         thread->run();
     }
     catch(...)

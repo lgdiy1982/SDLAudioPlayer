@@ -3,7 +3,7 @@
 //  SDLAaudioPlayer
 //
 //  Created by lugang on 12/1/14.
-//  Copyright (c) 2014 live365. All rights reserved.
+
 //
 
 #ifndef __SDLAaudioPlayer__AudioPlayer__
@@ -13,23 +13,30 @@
 
 enum EEStat
 {
-    
+    eIdel,
+    ePlayErr,
+    ePlayWaitting,
+    ePlayStarted,
+    ePlayFinished
 };
 
-struct playbackCallback
+struct PlaybackCallback
 {
     void* _pusr;
-    void (*progressCallback) (size_t expired, size_t duration);
-    void (*stateChg) (EEStat);
+    void (*stateChg) (EEStat state, void* _pusr);
 };
 
 class Player
 {
 public:
-    Player(const char* url);
-    void start();
+    //
+    static Player& instance();
+    void start(const char* url, PlaybackCallback cb);
     void stop();
+
 private:
+    Player();
+    ~Player();
     class PlayerImpl *_priv;
 };
 #endif /* defined(__SDLAaudioPlayer__AudioPlayer__) */

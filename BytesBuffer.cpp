@@ -3,7 +3,7 @@
 //  AmrRecoderAndPlayer
 //
 //  Created by lu gang on 8/26/13.
-//  Copyright (c) 2013 topcmm. All rights reserved.
+
 //
 
 #include "BytesBuffer.h"
@@ -20,8 +20,9 @@ public:
     ~BytesBuffer_context();
     friend class BytesBuffer;
     
-    void feed(size_t size, BufferChunkRef cbChunk, bool force);
-    void eat(size_t size, BufferChunkRef cbChunk, bool force);
+    
+    void feed(size_t size, BufferChunkRef cbChunk);
+    void eat(size_t size, BufferChunkRef cbChunk);
     void clean();
     void terminateFeed();
     void terminateEat();
@@ -61,35 +62,22 @@ _eatTerminated(false)
     bzero(_buffer, bufferSize);
 }
 
-void BytesBuffer_context::feed(size_t size, BufferChunkRef cbChunk, bool force)
+void BytesBuffer_context::feed(size_t size, BufferChunkRef cbChunk)
 {
     {
         Monitor<RecMutex>::Lock lock(_monitor);
         if (_feedTerminated) return;
         
-        while( size > _feedCapacity && !_eatTerminated && !force ) {
+        while( size > _feedCapacity && !_eatTerminated) {
             _currentFeedRequestSize = size;
-            //SP::printf("\nwait feeding, eatting %s\n", _eatTerminated ? "terminated" : "not terminated");
+            //SP::printf("\nwait feeding %d, eatting %s\n", _currentFeedRequestSize, _eatTerminated ? "terminated" : "not terminated");
             _monitor.wait();
         }
         _currentFeedRequestSize = 0;
     }
     
-//    if ( size > _feedCapacity && !_eatTerminated && force ) {
-//        
-//    }
-//    //if _eatTerminated is true; size > _feedCapacity
-//    if ( size > _feedCapacity ) {
-//        if (_eatTerminated) {
-//            size = _feedCapacity;
-//        } else if ( force ) {
-//            //do nothing
-//        } else {
-//            //do nothing
-//            assert(false);
-//        }
-//    }
-    //size = size > _feedCapacity ? _feedCapacity : size;
+    //if _eatTerminated is true; size > _feedCapacity
+    size = size > _feedCapacity ? _feedCapacity : size;
     
     bool truncated = false;
     size_t truncatedSize = 0;
@@ -108,34 +96,33 @@ void BytesBuffer_context::feed(size_t size, BufferChunkRef cbChunk, bool force)
     
     //if (truncated)  SP::printf("\n>>>>>>>>>>>>>>>>>>>>feed truncated (start: %u, size: %u, t: %u \n", _feedBeginIndex, size, truncatedSize);
     
+    
     //shit out the continious buffer
     size_t realSize = cbChunk->_callback(cbChunk->_userData, cbChunk, _eatTerminated);
-    assert(realSize <= size);
+    
     if (truncated) {
-        if (realSize <= truncatedSize) {
-            memcpy(_buffer + _feedBeginIndex, /*cbChunk->_data*/_feedSwapBuffer, realSize);
+        if (realSize <= truncated) {
+            memcpy(_buffer+_feedBeginIndex, cbChunk->_data, realSize);
         }
         else {
-            memcpy( _buffer + _feedBeginIndex, /*cbChunk->_data*/_feedSwapBuffer, truncatedSize);
-            memcpy( _buffer, /*cbChunk->_data*/_feedSwapBuffer + truncatedSize, realSize - truncatedSize);
+            memcpy(_buffer+_feedBeginIndex, cbChunk->_data, truncatedSize);
+            memcpy(_buffer, cbChunk->_data + truncatedSize, realSize - truncatedSize);
         }
     }
+
     
     size = realSize;
     
-    //force
-    if (size > _feedCapacity) {
-        _eatBeginIndex = ( _eatBeginIndex + size - _feedCapacity)  % _totalBufferSize;
-    }
     
     
     {
         Monitor<RecMutex>::Lock lock(_monitor);
         //check and notify, if _eatTerminated then _currentEatRequestSize=0,  verify already included
-        if ( _eatCapacity < _currentEatRequestSize && _eatCapacity + size >= _currentEatRequestSize )
+        if (_eatCapacity < _currentEatRequestSize && _eatCapacity + size >= _currentEatRequestSize)
             _monitor.notify();
         
         _eatCapacity += size;
+        _feedBeginIndex = (_feedBeginIndex + size)%_totalBufferSize;
         _feedCapacity -= size;
     }
     
@@ -148,14 +135,14 @@ void BytesBuffer_context::feed(size_t size, BufferChunkRef cbChunk, bool force)
     }
 }
 
-void BytesBuffer_context::eat(size_t size, BufferChunkRef cbChunk, bool force)
+void BytesBuffer_context::eat(size_t size, BufferChunkRef cbChunk)
 {
     {
         Monitor<RecMutex>::Lock lock(_monitor);
         if (_eatTerminated)  return;
         while(size > _eatCapacity && !_feedTerminated) {
             _currentEatRequestSize = size;
-            //SP::printf("\nwait eating, feeding %s\n", _feedTerminated ? "terminated" : "not terminated");
+            //SP::printf("\nwait eating %d, feeding %s\n", _currentEatRequestSize, _feedTerminated ? "terminated" : "not terminated");
             _monitor.wait();
         }
         _currentEatRequestSize = 0;
@@ -283,15 +270,15 @@ BytesBuffer::BytesBuffer(size_t bufferSize)
 }
 
 
-void BytesBuffer::feed(size_t size, BufferChunkRef cbChunk, bool force)
+void BytesBuffer::feed(size_t size, BufferChunkRef cbChunk)
 {
-    _ctx->feed(size, cbChunk, force);
+    _ctx->feed(size, cbChunk);
 }
 
 
-void BytesBuffer::eat(size_t size, BufferChunkRef cbChunk, bool force)
+void BytesBuffer::eat(size_t size, BufferChunkRef cbChunk)
 {
-    _ctx->eat(size, cbChunk, force);
+    _ctx->eat(size, cbChunk);
 }
 
 
@@ -309,4 +296,9 @@ void BytesBuffer::terminatedEat()
 bool BytesBuffer::empty()
 {
     return  _ctx->empty();
+}
+
+void BytesBuffer::clean()
+{
+    _ctx->clean();
 }

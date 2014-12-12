@@ -3,7 +3,7 @@
 //  AmrRecoderAndPlayer
 //
 //  Created by lu gang on 8/26/13.
-//  Copyright (c) 2013 topcmm. All rights reserved.
+
 //
 
 #ifndef __AmrRecoderAndPlayer__BytesBuffer__
@@ -16,7 +16,7 @@
 typedef struct ChunkInfo* ChunkInfoRef;
 typedef struct BufferChunk* BufferChunkRef;
 
-typedef size_t (*CallBackFun)( void* userData, const ChunkInfoRef,  bool terminated );
+typedef size_t (*CallBackFun)(void* userData, const ChunkInfoRef,  bool terminated);
 
 struct ChunkInfo
 {
@@ -37,12 +37,13 @@ class BytesBuffer : public IceUtil::Shared
 {
 public:
     BytesBuffer(size_t bufferSize);
-    void feed(size_t size, BufferChunkRef cbChunk, bool force = false);
-    void eat(size_t size, BufferChunkRef cbChunk, bool force = false);
+    void feed(size_t size, BufferChunkRef cbChunk);
+    void eat(size_t size, BufferChunkRef cbChunk);
     //call this two terminated method to reset the status, notice, the oppsite termiate method must be called after done the last feed/eat action. usually in out of the thread runloop
     void terminatedFeed();
     void terminatedEat();
     bool empty();
+    void clean();
 private:
     std::auto_ptr<class BytesBuffer_context> _ctx;
 };
